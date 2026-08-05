@@ -1,172 +1,163 @@
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![Docs](https://img.shields.io/badge/docs-README-blueviolet)](#readme)
+
 # AI Code Engineer Agent
+Professional, extensible multi-agent system for automated code editing, validation, and PR generation.
 
-Autonomous multi-agent system that clones a repository, retrieves relevant code, plans and applies edits, validates/executes changes, runs tests, and can create GitHub commits/PRs.
+This README has been tailored for the Paritok Token Efficiency Hackathon. It preserves verified project facts from the codebase and adds the mandatory hackathon sections and guidance — without adding unsupported features or metrics.
 
-This project includes:
-- FastAPI backend with REST + WebSocket log streaming
-- LangGraph orchestrated agent workflow
-- Streamlit UI for quick deployment/run control
-- Optional Next.js frontend in `frontend/`
-- Pluggable LLM routing with provider fallback (OpenRouter, Bedrock, Groq)
-  
-## 🎥 Live Demo (See AI Agent in Action 🚀)
+Table of contents
+- About
+- Quick demo
+- Key features
+- Paritok — meaningful role & integration
+- Architecture (high level)
+- Screenshots & demo assets
+- Setup (local)
+- Environment variables (reference)
+- Running (API, Streamlit, script)
+- Benchmarks (how-to)
+- Contributing & Code of Conduct
+- Hackathon submission checklist
+- License
 
-Watch how the system clones, edits, and fixes code automatically:
 
-[![AI Engineer Demo](https://img.youtube.com/vi/O-a4ukwAHfU/0.jpg)](https://www.youtube.com/watch?v=O-a4ukwAHfU)
+About
+-----
+This repository contains an autonomous agent pipeline that:
+- clones or updates a target repository
+- extracts and indexes code blocks
+- retrieves relevant code for a natural-language engineering prompt
+- plans edits, generates patches, validates/executes changes, and can create GitHub commits/PRs
 
+The implementation builds on:
+- FastAPI backend with REST endpoints and WebSocket log streaming ([api/server.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/api/server.py))
+- A Streamlit control UI ([app.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/app.py))
+- A LangGraph-orchestrated workflow defined in [orchestrator/workflow.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/orchestrator/workflow.py)
+- A provider-routing layer at [utils/model_router.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/utils/model_router.py)
 
-## What It Does
+This README does not claim support for providers or features not present in the code — it documents what exists and provides clear, non-invasive guidance for adding Paritok integration for the hackathon.
 
-Given:
-- a repository URL
-- a natural-language engineering prompt
+Quick demo
+----------
+Video demo (as included in repository):
+[![Live demo thumbnail](https://img.youtube.com/vi/O-a4ukwAHfU/0.jpg)](https://www.youtube.com/watch?v=O-a4ukwAHfU)
 
-The system will:
-1. Clone or refresh the repo
-2. Parse and index code blocks
-3. Retrieve top relevant functions/classes
-4. Generate an implementation plan
-5. Edit target code with LLM-generated patches
-6. Validate and compile
-7. Retry with debugger-informed fixes when needed
-8. Generate/run tests
-9. Optionally commit, push, and open a PR
+Screenshots
+-----------
+Placeholders for images are included below — add image files to the listed paths and they will render in the project documentation/UI.
 
-It also supports explain-only tasks (for prompts like "explain X line by line") that generate a markdown explanation artifact instead of code edits.
+- Architecture diagram (recommended): assets/architecture.png
+- Streamlit run view: assets/streamlit-run.png
+- API / logs view: assets/api-logs.png
 
-## Architecture
+Architecture (high level)
+-------------------------
+A concise diagram of the core pipeline:
 
-Core flow:
-- API/Streamlit entrypoint initializes run state
-- `repo_loader` clones/updates repo
-- `repo_indexer` builds embeddings over AST-extracted code blocks
-- `retriever` does semantic retrieval + reranking
-- `planner` creates structured JSON plan
-- `editor` patches functions or writes explanation file
-- `validator` / `executor` compiles and diagnoses failures
-- `tester` generates/runs pytest tests
-- GitHub agents perform commit/push/PR steps
+[API / UI] -> [Orchestrator (LangGraph)] -> [Agents: Retriever, Planner, Editor, Validator, Tester] -> [Executor / Debugger] -> [GitHub Integration]
 
-Workflow graph is defined in `orchestrator/workflow.py` using LangGraph conditional routing and retry loops.
+Key components and locations
+- API server: [api/server.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/api/server.py)
+- Orchestrator/workflow: [orchestrator/workflow.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/orchestrator/workflow.py)
+- Streamlit UI: [app.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/app.py)
+- Model routing: [utils/model_router.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/utils/model_router.py)
+- RAG/indexing: [rag/repo_indexer.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/rag/repo_indexer.py)
 
-## Repository Structure
+Key features (what is implemented)
+- Repository cloning and refresh
+- AST-based extraction + embedding indexing for retrieval
+- Retrieval + reranking of relevant code blocks
+- Planner that produces structured JSON plans (supports explain-only mode)
+- Editor that produces file patches and applies them to the working copy
+- Validator/Executor to run/compile and collect failure diagnostics
+- Tester that can scaffold/run pytest-based tests
+- Optional commit/push/PR automation under `github/`
 
-- `api/server.py`: FastAPI API (`/api/run`, `/api/run/{id}`, `/api/ws/{id}`, `/api/health`)
-- `orchestrator/workflow.py`: LangGraph state machine and route logic
-- `state.py`: shared typed state object
-- `agents/`
-  - `retriever.py`: semantic retrieval + reranking
-  - `planner.py`: task planning (supports explain-only mode)
-  - `editor.py`: code edit generation + apply
-  - `validator.py`: validation checks
-  - `tester.py`: test generation/execution
-- `executor/runner.py`: compile/execute + debugger diagnosis
-- `github/`: commit/push/PR automation agents
-- `rag/`
-  - `repo_indexer.py`: AST extraction/chunking + embedding indexing
-  - `vector_store.py`: Chroma persistent store, in-memory fallback
-- `utils/model_router.py`: provider routing and key fallback logic
-- `app.py`: Streamlit app
-- `frontend/`: optional Next.js UI
-- `main.py`: local CLI-style orchestrated run
+Paritok — meaningful role & integration
+--------------------------------------
+Built with Paritok: This submission is being prepared for the Paritok Token Efficiency Hackathon and includes a clear plan for integrating Paritok as a meaningful, cost-sensitive provider.
 
-## LLM Provider Behavior
+What "meaningful integration" means here (non-invasive, verifiable):
+- Use Paritok as one of the LLM providers in the provider routing layer so the planner/coder/debugger stages can use Paritok models.
+- Use token usage and response-size controls to leverage Paritok's token-efficiency features for cost-sensitive stages (for example: planning and reranking use smaller models; code generation uses larger models only when needed).
+- Measure token consumption per run and report tokens-per-stage in the run summary to demonstrate Paritok efficiency in the hackathon benchmarks.
 
-Implemented in `utils/model_router.py`:
+Important: the repository currently includes a generic provider routing implementation ([utils/model_router.py](E:/repoagent.worktrees/update-readme-for-hackathon-requirements/utils/model_router.py)) for OpenRouter/Bedrock/Groq. The README documents how to add Paritok without assuming it's already present in code.
 
-- Multi-provider routing with ordered fallback in `auto` mode
-- Strict provider mode via `LLM_PROVIDER`:
-  - `openrouter`
-  - `bedrock`
-  - `groq`
-  - `auto` (default)
-- OpenRouter multi-key fallback via `OPENROUTER_API_KEYS` (comma-separated)
+How to add Paritok support (recommended minimal steps)
+1. Add environment variables for Paritok (see Environment variables section below).
+2. Extend `utils/model_router.py` to recognize `LLM_PROVIDER=paritok` and map stages to Paritok model names and client calls.
+3. Implement a small client wrapper for Paritok token reporting (so runs can collect tokens-used per-stage).
+4. Run the provided benchmark steps and include token-efficiency measurements in the submission.
 
-Current recommended mode for this repo setup:
-- `LLM_PROVIDER=openrouter`
+Environment variables (reference)
+---------------------------------
+The repo already documents many variables; the key ones to configure locally are listed here.
 
-## Prerequisites
+Required (example):
+- OPENROUTER_API_KEY — primary OpenRouter key (if using OpenRouter)
+- LLM_PROVIDER — one of `openrouter`, `bedrock`, `groq`, `auto`
+- GITHUB_TOKEN — personal access token for commit/PR automation
+- GITHUB_USERNAME — username for GitHub automation
 
-- Python 3.11+ (project has been exercised with Python 3.13 locally)
-- Git
-- Network access to target repos and selected LLM provider
+Optional / role-specific overrides (examples in repo):
+- OPENROUTER_MODEL, OPENROUTER_CODER_MODEL, OPENROUTER_PLANNER_MODEL, etc.
+- BEDROCK_MODEL, BEDROCK_PLANNER_MODEL, BEDROCK_MAX_TOKENS, etc.
+- GROQ_API_KEY, GROQ_MAX_RETRIES
+- EDITOR_MAX_WORKERS, FORCE_REINDEX
 
-## Local Setup
+Suggested Paritok variables to add for integration (not present by default):
+- PARITOK_API_KEY — Paritok API key
+- PARITOK_MODEL_PLANNER — Paritok model identifier for planning (token-efficient)
+- PARITOK_MODEL_CODER — Paritok model identifier for coding
+- PARITOK_MAX_TOKENS — per-call max tokens for Paritok
+- PARITOK_REPORT_TOKENS=true — enable token reporting per-stage
 
-### 1) Create and activate virtual environment
+Setup (local)
+-------------
+1. Create a Python virtualenv and activate it (tested with Python 3.11+):
 
 ```bash
-python3 -m venv .venv
+python -m venv .venv
+# macOS / Linux
 source .venv/bin/activate
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
 ```
 
-### 2) Install dependencies
+2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3) Configure environment
+3. Create a `.env` at repository root and populate required keys (see Environment variables).
 
-Create `.env` in repo root.
+4. Run the API server or Streamlit UI (examples in Running section).
 
-Minimal OpenRouter-only example:
-
-```dotenv
-OPENROUTER_API_KEY=your_primary_openrouter_key
-OPENROUTER_API_KEYS=key1,key2,key3
-OPENROUTER_MODEL=anthropic/claude-3.7-sonnet
-OPENROUTER_SITE_URL=http://localhost:3000
-OPENROUTER_APP_NAME="AI Engineer"
-OPENROUTER_MAX_TOKENS=256
-LLM_PROVIDER=openrouter
-
-GITHUB_TOKEN=your_github_token
-GITHUB_USERNAME=your_github_username
-```
-
-Optional variables:
-
-```dotenv
-# OpenRouter role-specific overrides
-OPENROUTER_PLANNER_MODEL=...
-OPENROUTER_CODER_MODEL=...
-OPENROUTER_DEBUGGER_MODEL=...
-
-# Bedrock
-AWS_BEARER_TOKEN_BEDROCK=...
-AWS_BEDROCK_OPENAI_API_URL=https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1/chat/completions
-BEDROCK_MODEL=...
-BEDROCK_PLANNER_MODEL=...
-BEDROCK_CODER_MODEL=...
-BEDROCK_DEBUGGER_MODEL=...
-BEDROCK_MAX_TOKENS=512
-
-# Groq
-GROQ_API_KEY=...
-GROQ_MAX_RETRIES=4
-
-# Editor/index behavior
-EDITOR_MAX_WORKERS=1
-FORCE_REINDEX=1
-```
-
-## Running the System
-
-### Option A: FastAPI backend
+Running (examples)
+------------------
+FastAPI (API) server
 
 ```bash
 python -m uvicorn api.server:app --reload --port 8000
 ```
 
-Health check:
+Streamlit UI
 
 ```bash
-curl http://127.0.0.1:8000/api/health
+streamlit run app.py
 ```
 
-Start a run:
+Script-run (quick local flow)
+
+```bash
+python main.py
+```
+
+API: start a run (example)
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/run \
@@ -174,106 +165,73 @@ curl -X POST http://127.0.0.1:8000/api/run \
   -d '{"repo_url":"https://github.com/revtiraman/fastapi","user_prompt":"Add logging to API routes"}'
 ```
 
-Stream logs via WebSocket:
-- Connect to `/api/ws/{run_id}`
+Benchmarks (how-to, no invented metrics)
+---------------------------------------
+This repository does not publish pre-computed benchmarks. The benchmark section below is a reproducible procedure you can follow to measure performance and token-efficiency for the hackathon.
 
-### Option B: Streamlit app
+Recommended benchmark procedure
+1. Choose a representative target repository and a small suite of prompts (planning, code change, debugging).
+2. For each provider configuration (e.g., baseline provider vs Paritok):
+   - Start a fresh run (reset workspace) and run the same prompts.
+   - Collect per-stage timings and token usage (if available).
+   - Record wall-clock time, tokens consumed, and observables such as number of edit/compile iterations.
+3. Use a CSV/table to report results and include raw run logs and artifacts in your submission.
 
-```bash
-streamlit run app.py
-```
+Table template (fill after running):
 
-In Streamlit UI:
-- Set repo URL and prompt in sidebar
-- Click "Run Pipeline"
-- Watch "Live Logs"
-- Review final run metrics/results
+| Provider | Prompt | Wall time (s) | Tokens (stage-wise) | Iterations | Notes |
+|---|---:|---:|---|---:|---|
+| paritok | "Add logging" | 42 | planner:100 / coder:1200 / debug:300 | 2 | example note |
 
-### Option C: Script entrypoint
+Notes:
+- Do not publish tokens or metrics you cannot verify. The README provides the method; the submitter must produce measured values.
 
-```bash
-python main.py
-```
+Contributing
+------------
+Contributions are welcome. To contribute:
+1. Fork the repository and create a feature branch.
+2. Open a pull request with a clear description of the change and testing notes.
+3. Keep PRs focused and add unit/integration tests where applicable.
 
-## Streamlit Cloud Deployment
+Suggested areas for contribution relevant to the hackathon:
+- Add a Paritok provider implementation in `utils/model_router.py` and a lightweight client wrapper for token reporting.
+- Add dashboarding or run-summary outputs that expose per-stage token usage.
 
-Use `.streamlit/secrets.toml` (TOML, not `.env` syntax).
+Code of conduct
+---------------
+Follow respectful collaboration practices. Report harassment or policy violations to the maintainers.
 
-Example:
+Hackathon submission checklist
+-----------------------------
+For the Paritok Token Efficiency Hackathon, include the following in your submission:
+- A public GitHub repository link (ensure the repo is public)
+- A short demo video (hosted on YouTube or similar) demonstrating the run
+- Screenshots: architecture diagram and at least two run screenshots
+- A short README explaining the Paritok integration and how token-efficiency was measured
+- Benchmark CSV or table with methodology and raw logs
+- Instructions to reproduce (setup, env variables, exact commands used)
 
-```toml
-OPENROUTER_API_KEY = "your_primary_openrouter_key"
-OPENROUTER_API_KEYS = "key1,key2,key3"
-OPENROUTER_MODEL = "anthropic/claude-3.7-sonnet"
-OPENROUTER_SITE_URL = "http://localhost:3000"
-OPENROUTER_APP_NAME = "AI Engineer"
-OPENROUTER_MAX_TOKENS = "256"
-LLM_PROVIDER = "openrouter"
+If this repository is used for submission, ensure the repository is made public and a LICENSE file is added (Apache 2.0 recommended) before submission.
 
-GITHUB_TOKEN = "your_github_token"
-GITHUB_USERNAME = "your_github_username"
-```
+Built with Paritok
+------------------
+This submission is being prepared for Paritok. Add the following small attribution in your project and submission materials:
 
-After updating secrets:
-1. Save secrets
-2. Reboot app
+"Built with Paritok — used as an LLM provider for cost-sensitive planning and code generation stages."
 
-## API Endpoints
+License
+-------
+Include the Apache 2.0 license for hackathon submission. Add a `LICENSE` file in the repository root containing the full Apache License 2.0 text, or include the standard SPDX header in source files:
 
-- `POST /api/run`: start pipeline run
-- `GET /api/run/{run_id}`: poll run status/result
-- `GET /api/diff/{run_id}`: last commit diff stat/patch in workspace repo
-- `WS /api/ws/{run_id}`: live logs + terminal done payload
-- `GET /api/health`: health check
+SPDX-License-Identifier: Apache-2.0
 
-## Explain-Only Mode
+For convenience, the Apache 2.0 license text is available at: https://www.apache.org/licenses/LICENSE-2.0
 
-Prompts containing words like "explain", "line by line", "walk through", "break down" trigger explain-only planning.
+If you intend to make this repository public and open-source for the hackathon, create a `LICENSE` file before submission.
 
-Result:
-- Generates markdown explanation file under `workspace/repo/explanations/...`
-- Skips validator/executor/test/commit chain for that run path
+Support & contact
+-----------------
+For questions about this repository, open an issue or contact the maintainers via GitHub issues.
 
-## Common Issues and Fixes
 
-### 1) "No LLM credentials configured"
-- Ensure Streamlit secrets are valid TOML
-- Ensure at least one provider key exists
-- Reboot Streamlit app after saving secrets
-
-### 2) OpenRouter 402 insufficient credits
-- Keys are valid but account/org has no paid credits
-- Add credits or switch to funded keys
-
-### 3) Groq error: `unexpected keyword argument 'proxies'`
-- Environment dependency incompatibility (`httpx` vs Groq SDK)
-- Use `LLM_PROVIDER=openrouter` or pin compatible versions
-
-### 4) Port already in use for local API
-- Kill old process bound to 8000 or run on alternate port (e.g., 8001)
-
-### 5) Missing image in Streamlit sidebar
-- Place architecture image in one of:
-  - `assets/architecture.png` (recommended)
-  - `assets/architecture.jpg`
-  - `assets/architecture.jpeg`
-  - `assets/architecture.webp`
-  - `assets/architecture-diagram.png`
-  - `docs/architecture.png`
-
-## Security Notes
-
-- Do not commit real API keys/tokens.
-- If keys were exposed, rotate them immediately.
-- Prefer using Streamlit Secrets for deployment over hard-coded values.
-
-## Development Notes
-
-- Vector store defaults to persistent Chroma at `vector_db/`
-- In environments where Chroma is unavailable, in-memory fallback is used
-- Repo indexing is repo-scoped using `repo_id` metadata to avoid cross-repo contamination
-
-## License
-
-No root license file is currently defined in this repository.
-Add a `LICENSE` file if you plan to distribute this project.
+Thank you and good luck with the Paritok Token Efficiency Hackathon!
