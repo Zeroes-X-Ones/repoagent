@@ -42,7 +42,7 @@ This README does not claim support for providers or features not present in the 
 Quick demo
 ----------
 Video demo (as included in repository):
-[![Live demo thumbnail](https://img.youtube.com/vi/O-a4ukwAHfU/0.jpg)](https://www.youtube.com/watch?v=O-a4ukwAHfU)
+[![Live demo thumbnail](https://youtu.be/SSbz5QrGDWQ)
 
 Screenshots
 -----------
